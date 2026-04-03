@@ -1,58 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sanquo 3D Viewer</title>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-    <style>
-        body { margin: 0; background-color: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: -apple-system, sans-serif; }
-        model-viewer { width: 100%; height: 100%; background-color: #fafafa; }
-        #status { position: absolute; bottom: 20px; color: #888; font-size: 13px; font-weight: 500; }
-    </style>
-</head>
-<body>
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    let rawUrl = urlParams.get('src');
+    const viewer = document.getElementById('viewer');
+    const status = document.getElementById('status');
 
-    <div id="status">Ready to load Sanquo model...</div>
-
-    <model-viewer id="viewer" ar ar-modes="webxr scene-viewer quick-look" camera-controls shadow-intensity="1" auto-rotate>
-    </model-viewer>
-
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        let rawUrl = urlParams.get('src');
-        const viewer = document.getElementById('viewer');
-        const status = document.getElementById('status');
-
-        if (rawUrl) {
-            status.innerText = "Processing link...";
-
-            // MAGIC PART: Converts standard Google Drive links to Direct Download links
-            if (rawUrl.includes("drive.google.com")) {
-                const fileId = rawUrl.match(/[-\w]{25,}/);
-                if (fileId) {
-                    rawUrl = `https://docs.google.com/uc?export=download&id=${fileId[0]}`;
-                }
-            }
-
-            status.innerText = "Downloading 3D Model...";
-            viewer.src = rawUrl;
-
-            // Update status when loaded
-            viewer.addEventListener('load', () => {
-                status.innerText = "Model Loaded Successfully";
-                setTimeout(() => { status.style.opacity = '0'; }, 3000);
-            });
-
-            // Handle errors (like private files)
-            viewer.addEventListener('error', (e) => {
-                status.innerText = "Error: Make sure the Google Drive file is PUBLIC.";
-                status.style.color = "red";
-                console.error(e);
-            });
+    if (rawUrl) {
+        // 1. Extract the File ID
+        let fileId = "";
+        if (rawUrl.includes("drive.google.com")) {
+            const matches = rawUrl.match(/[-\w]{25,}/);
+            if (matches) fileId = matches[0];
         } else {
-            status.innerText = "No model link found. Please scan a Sanquo PDF.";
+            fileId = rawUrl; // Assume raw ID if no domain
         }
-    </script>
-</body>
-</html>
+
+        if (fileId) {
+            status.innerText = "Bypassing Google security check...";
+            
+            // 2. Use the 2026 direct usercontent domain with the 'confirm=t' bypass
+            // This forces Google to skip the "Too large to scan" warning page.
+            const directLink = `https://drive.usercontent.google.com/download?export=download&id=${fileId}&confirm=t`;
+            
+            viewer.src = directLink;
+
+            viewer.addEventListener('progress', (event) => {
+                const percent = Math.round(event.detail.totalProgress * 100);
+                status.innerText = `Downloading: ${percent}%`;
+            });
+
+            viewer.addEventListener('load', () => {
+                status.innerText = "Model Loaded";
+                setTimeout(() => { status.style.opacity = '0'; }, 2000);
+            });
+
+            viewer.addEventListener('error', () => {
+                status.innerText = "Error: File is private or link is broken.";
+                status.style.color = "#ff3b30"; // Apple Red
+            });
+        }
+    } else {
+        status.innerText = "No model detected. Scan a Sanquo PDF.";
+    }
+</script>
