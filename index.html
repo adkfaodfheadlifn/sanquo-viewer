@@ -66,8 +66,8 @@
                 log("Sanquo ID: " + fileId);
                 
                 // 3. Bypass 'Large File' warning using the 2026 direct usercontent endpoint
-                const directLink = `https://drive.usercontent.google.com/download?export=download&id=${fileId}&confirm=t`;
-                
+            const directLink = `https://docs.google.com/uc?export=download&id=${fileId}`;                
+            
                 statusText.innerText = "Downloading Structural Model...";
                 viewer.src = directLink;
 
